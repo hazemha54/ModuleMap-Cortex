@@ -1,0 +1,17 @@
+{
+  "odoo": {
+    "url": "http://localhost:8069",
+    "db": "odoo_db",
+    "username": "admin",
+    "password": "admin",
+    "timeout": 30
+  },
+  "app": {
+    "db_path": "modulemap_cortex.db",
+    "debug": false,
+    "auto_import": false,
+    "theme": "light",
+    "window_width": 1400,
+    "window_height": 900
+  }
+}
