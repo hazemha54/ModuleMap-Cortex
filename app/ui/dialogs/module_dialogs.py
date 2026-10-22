@@ -1,120 +1,140 @@
 """
-Modal Dialogs for Module Management (Add, Edit, View Details)
+Modal dialogs for module management (Add, Edit, View Details), themed.
 """
 
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Callable
+
 from app.domain.models import Module
+from app.ui import theme
 
 
 class ViewModuleDialog(tk.Toplevel):
-    """Dialog to view module details"""
+    """Dialog to view module details."""
 
     def __init__(self, parent, module: Module):
         super().__init__(parent)
+        self.module = module
+        p, f = theme.Palette, theme.Font
         self.title(f"Module Details: {module.name}")
         self.geometry("600x500")
         self.minsize(500, 400)
+        self.configure(bg=p.BG)
         self.transient(parent)
         self.grab_set()
-
-        self.module = module
         self.create_widgets()
 
     def create_widgets(self):
-        main_frame = ttk.Frame(self, padding=20)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        p, f = theme.Palette, theme.Font
+        main = tk.Frame(self, bg=p.BG, padx=24, pady=20)
+        main.pack(fill=tk.BOTH, expand=True)
 
-        tk.Label(main_frame, text=f"Module: {self.module.name}", font=("Helvetica", 14, "bold")).pack(anchor=tk.W, pady=(0, 10))
+        tk.Label(main, text=f"Module: {self.module.name}", bg=p.BG, fg=p.TEXT,
+                 font=f.H2).pack(anchor="w", pady=(0, 14))
 
-        info_frame = ttk.LabelFrame(main_frame, text="Properties", padding=15)
-        info_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        info = theme.surface_panel(main)
+        tk.Label(info, text="PROPERTIES", bg=p.SURFACE, fg=p.TEXT_MUTED,
+                 font=f.STAT_LABEL, anchor="w").pack(anchor="w", pady=(0, 8))
+
+        body = tk.Frame(info, bg=p.SURFACE)
+        body.pack(fill=tk.BOTH, expand=True)
 
         fields = [
-            ("Display Name:", self.module.display_name),
-            ("Author:", self.module.author),
-            ("Version:", self.module.version),
-            ("Category:", self.module.category),
-            ("Type:", "Custom" if self.module.is_custom else "Core"),
-            ("Status:", "Installed" if self.module.is_installed else "Not Installed"),
-            ("Dependencies:", ", ".join(self.module.dependencies) if self.module.dependencies else "None")
+            ("Display Name", self.module.display_name),
+            ("Author", self.module.author),
+            ("Version", self.module.version),
+            ("Category", self.module.category),
+            ("Type", "Custom" if self.module.is_custom else "Core"),
+            ("Status", "Installed" if self.module.is_installed else "Not Installed"),
+            ("Dependencies", ", ".join(self.module.dependencies) or "None"),
         ]
-
         for i, (label, val) in enumerate(fields):
-            tk.Label(info_frame, text=label, font=("Helvetica", 10, "bold")).grid(row=i, column=0, sticky=tk.W, pady=3, padx=5)
-            ttk.Label(info_frame, text=val, wraplength=400).grid(row=i, column=1, sticky=tk.W, pady=3, padx=5)
+            tk.Label(body, text=label, bg=p.SURFACE, fg=p.TEXT_MUTED,
+                     font=f.MUTED, anchor="w").grid(row=i, column=0, sticky="w",
+                                                     pady=4, padx=(0, 16))
+            tk.Label(body, text=str(val), bg=p.SURFACE, fg=p.TEXT,
+                     font=f.BASE, anchor="w", wraplength=380,
+                     justify="left").grid(row=i, column=1, sticky="w", pady=4)
 
-        desc_frame = ttk.LabelFrame(main_frame, text="Description", padding=10)
-        desc_frame.pack(fill=tk.BOTH, expand=True, pady=10)
-
-        text = tk.Text(desc_frame, wrap=tk.WORD, height=6, font=("Helvetica", 10))
+        tk.Label(main, text="DESCRIPTION", bg=p.BG, fg=p.TEXT_MUTED,
+                 font=f.STAT_LABEL, anchor="w").pack(anchor="w", pady=(18, 6))
+        desc_card = theme.surface_panel(main)
+        desc_card.pack(fill=tk.BOTH, expand=True)
+        text = tk.Text(desc_card, wrap="word", height=6, font=f.BASE,
+                       bg=p.SURFACE, fg=p.TEXT, highlightthickness=0, relief="flat")
+        text.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
         text.insert("1.0", self.module.description or "No description provided.")
         text.config(state=tk.DISABLED)
-        text.pack(fill=tk.BOTH, expand=True)
 
-        btn_frame = ttk.Frame(main_frame)
-        btn_frame.pack(fill=tk.X, pady=(10, 0))
-        ttk.Button(btn_frame, text="Close", command=self.destroy).pack(side=tk.RIGHT)
+        btn = tk.Frame(main, bg=p.BG)
+        btn.pack(fill=tk.X, pady=(14, 0))
+        ttk.Button(btn, text="Close", command=self.destroy).pack(side=tk.RIGHT)
 
 
 class EditModuleDialog(tk.Toplevel):
-    """Dialog to edit an existing module"""
+    """Dialog to edit an existing module."""
 
     def __init__(self, parent, module: Module, on_save: Callable[[Module], None]):
         super().__init__(parent)
-        self.title(f"Edit Module: {module.name}")
-        self.geometry("550x550")
-        self.transient(parent)
-        self.grab_set()
-
         self.module = module
         self.on_save = on_save
+        p, f = theme.Palette, theme.Font
+        self.title(f"Edit Module: {module.name}")
+        self.geometry("560x560")
+        self.configure(bg=p.BG)
+        self.transient(parent)
+        self.grab_set()
         self.create_widgets()
 
     def create_widgets(self):
-        main_frame = ttk.Frame(self, padding=20)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        p, f = theme.Palette, theme.Font
+        main = tk.Frame(self, bg=p.BG, padx=24, pady=20)
+        main.pack(fill=tk.BOTH, expand=True)
 
-        tk.Label(main_frame, text=f"Editing Module: {self.module.name}", font=("Helvetica", 12, "bold")).pack(anchor=tk.W, pady=(0, 10))
+        tk.Label(main, text=f"Editing: {self.module.name}", bg=p.BG, fg=p.TEXT,
+                 font=f.H2).pack(anchor="w", pady=(0, 14))
 
-        form_frame = ttk.Frame(main_frame)
-        form_frame.pack(fill=tk.BOTH, expand=True)
+        card = theme.surface_panel(main)
+        card.pack(fill=tk.BOTH, expand=True)
+        form = tk.Frame(card, bg=p.SURFACE)
+        form.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
+        form.columnconfigure(1, weight=1)
 
-        # Fields
-        ttk.Label(form_frame, text="Display Name:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        def field(row, label, var):
+            tk.Label(form, text=label, bg=p.SURFACE, fg=p.TEXT_MUTED,
+                     font=f.MUTED, anchor="w").grid(row=row * 2, column=1, sticky="w",
+                                                     pady=(8, 0))
+            ttk.Entry(form, textvariable=var).grid(row=row * 2 + 1, column=1, sticky="ew",
+                                                    pady=(2, 4))
+
         self.display_name_var = tk.StringVar(value=self.module.display_name)
-        ttk.Entry(form_frame, textvariable=self.display_name_var, width=40).grid(row=0, column=1, sticky=tk.W, pady=5)
-
-        ttk.Label(form_frame, text="Author:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        field(0, "Display Name", self.display_name_var)
         self.author_var = tk.StringVar(value=self.module.author)
-        ttk.Entry(form_frame, textvariable=self.author_var, width=40).grid(row=1, column=1, sticky=tk.W, pady=5)
-
-        ttk.Label(form_frame, text="Version:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        field(1, "Author", self.author_var)
         self.version_var = tk.StringVar(value=self.module.version)
-        ttk.Entry(form_frame, textvariable=self.version_var, width=40).grid(row=2, column=1, sticky=tk.W, pady=5)
-
-        ttk.Label(form_frame, text="Category:").grid(row=3, column=0, sticky=tk.W, pady=5)
+        field(2, "Version", self.version_var)
         self.category_var = tk.StringVar(value=self.module.category)
-        ttk.Entry(form_frame, textvariable=self.category_var, width=40).grid(row=3, column=1, sticky=tk.W, pady=5)
+        field(3, "Category", self.category_var)
 
         self.is_custom_var = tk.BooleanVar(value=self.module.is_custom)
-        ttk.Checkbutton(form_frame, text="Custom Module", variable=self.is_custom_var).grid(row=4, column=1, sticky=tk.W, pady=5)
-
+        ttk.Checkbutton(form, text="Custom Module", variable=self.is_custom_var)\
+            .grid(row=8, column=1, sticky="w", pady=6)
         self.is_installed_var = tk.BooleanVar(value=self.module.is_installed)
-        ttk.Checkbutton(form_frame, text="Installed", variable=self.is_installed_var).grid(row=5, column=1, sticky=tk.W, pady=5)
+        ttk.Checkbutton(form, text="Installed", variable=self.is_installed_var)\
+            .grid(row=9, column=1, sticky="w", pady=6)
 
-        ttk.Label(form_frame, text="Description:").grid(row=6, column=0, sticky=tk.NW, pady=5)
-        self.desc_text = tk.Text(form_frame, width=40, height=5, wrap=tk.WORD)
-        self.desc_text.insert("1.0", self.module.description)
-        self.desc_text.grid(row=6, column=1, sticky=tk.W, pady=5)
+        tk.Label(form, text="Description", bg=p.SURFACE, fg=p.TEXT_MUTED,
+                 font=f.MUTED, anchor="w").grid(row=10, column=1, sticky="w", pady=(8, 0))
+        self.desc_text = tk.Text(form, width=40, height=5, wrap="word",
+                                 highlightthickness=0, relief="flat")
+        self.desc_text.insert("1.0", self.module.description or "")
+        self.desc_text.grid(row=11, column=1, sticky="ew", pady=(2, 4))
 
-        # Buttons
-        btn_frame = ttk.Frame(main_frame)
-        btn_frame.pack(fill=tk.X, pady=(15, 0))
-
-        ttk.Button(btn_frame, text="Save", command=self.save).pack(side=tk.RIGHT, padx=5)
-        ttk.Button(btn_frame, text="Cancel", command=self.destroy).pack(side=tk.RIGHT)
+        btn = tk.Frame(main, bg=p.BG)
+        btn.pack(fill=tk.X, pady=(14, 0))
+        ttk.Button(btn, text="Cancel", command=self.destroy).pack(side=tk.RIGHT, padx=(0, 8))
+        ttk.Button(btn, text="Save", style="Primary.TButton", command=self.save).pack(side=tk.RIGHT)
 
     def save(self):
         self.module.display_name = self.display_name_var.get().strip()
@@ -130,62 +150,63 @@ class EditModuleDialog(tk.Toplevel):
 
 
 class AddModuleDialog(tk.Toplevel):
-    """Dialog to add a new custom module"""
+    """Dialog to add a new custom module."""
 
     def __init__(self, parent, on_save: Callable[[Module], None]):
         super().__init__(parent)
+        self.on_save = on_save
+        p, f = theme.Palette, theme.Font
         self.title("Add New Custom Module")
-        self.geometry("550x580")
+        self.geometry("560x580")
+        self.configure(bg=p.BG)
         self.transient(parent)
         self.grab_set()
-
-        self.on_save = on_save
         self.create_widgets()
 
     def create_widgets(self):
-        main_frame = ttk.Frame(self, padding=20)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        p, f = theme.Palette, theme.Font
+        main = tk.Frame(self, bg=p.BG, padx=24, pady=20)
+        main.pack(fill=tk.BOTH, expand=True)
 
-        tk.Label(main_frame, text="Create New Custom Module", font=("Helvetica", 12, "bold")).pack(anchor=tk.W, pady=(0, 10))
+        tk.Label(main, text="Create New Custom Module", bg=p.BG, fg=p.TEXT,
+                 font=f.H2).pack(anchor="w", pady=(0, 14))
 
-        form_frame = ttk.Frame(main_frame)
-        form_frame.pack(fill=tk.BOTH, expand=True)
+        card = theme.surface_panel(main)
+        card.pack(fill=tk.BOTH, expand=True)
+        form = tk.Frame(card, bg=p.SURFACE)
+        form.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
+        form.columnconfigure(1, weight=1)
 
-        # Fields
-        ttk.Label(form_frame, text="Technical Name (*):").grid(row=0, column=0, sticky=tk.W, pady=5)
+        def field(row, label, var):
+            tk.Label(form, text=label, bg=p.SURFACE, fg=p.TEXT_MUTED,
+                     font=f.MUTED, anchor="w").grid(row=row * 2, column=1, sticky="w",
+                                                     pady=(8, 0))
+            ttk.Entry(form, textvariable=var).grid(row=row * 2 + 1, column=1, sticky="ew",
+                                                    pady=(2, 4))
+
         self.name_var = tk.StringVar()
-        ttk.Entry(form_frame, textvariable=self.name_var, width=40).grid(row=0, column=1, sticky=tk.W, pady=5)
-
-        ttk.Label(form_frame, text="Display Name:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        field(0, "Technical Name (* required)", self.name_var)
         self.display_name_var = tk.StringVar()
-        ttk.Entry(form_frame, textvariable=self.display_name_var, width=40).grid(row=1, column=1, sticky=tk.W, pady=5)
-
-        ttk.Label(form_frame, text="Author:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        field(1, "Display Name", self.display_name_var)
         self.author_var = tk.StringVar(value="Custom")
-        ttk.Entry(form_frame, textvariable=self.author_var, width=40).grid(row=2, column=1, sticky=tk.W, pady=5)
-
-        ttk.Label(form_frame, text="Version:").grid(row=3, column=0, sticky=tk.W, pady=5)
+        field(2, "Author", self.author_var)
         self.version_var = tk.StringVar(value="1.0.0")
-        ttk.Entry(form_frame, textvariable=self.version_var, width=40).grid(row=3, column=1, sticky=tk.W, pady=5)
-
-        ttk.Label(form_frame, text="Category:").grid(row=4, column=0, sticky=tk.W, pady=5)
+        field(3, "Version", self.version_var)
         self.category_var = tk.StringVar(value="Uncategorized")
-        ttk.Entry(form_frame, textvariable=self.category_var, width=40).grid(row=4, column=1, sticky=tk.W, pady=5)
-
-        ttk.Label(form_frame, text="Dependencies (comma-sep):").grid(row=5, column=0, sticky=tk.W, pady=5)
+        field(4, "Category", self.category_var)
         self.deps_var = tk.StringVar(value="base")
-        ttk.Entry(form_frame, textvariable=self.deps_var, width=40).grid(row=5, column=1, sticky=tk.W, pady=5)
+        field(5, "Dependencies (comma-separated)", self.deps_var)
 
-        ttk.Label(form_frame, text="Description:").grid(row=6, column=0, sticky=tk.NW, pady=5)
-        self.desc_text = tk.Text(form_frame, width=40, height=5, wrap=tk.WORD)
-        self.desc_text.grid(row=6, column=1, sticky=tk.W, pady=5)
+        tk.Label(form, text="Description", bg=p.SURFACE, fg=p.TEXT_MUTED,
+                 font=f.MUTED, anchor="w").grid(row=10, column=1, sticky="w", pady=(8, 0))
+        self.desc_text = tk.Text(form, width=40, height=5, wrap="word",
+                                 highlightthickness=0, relief="flat")
+        self.desc_text.grid(row=11, column=1, sticky="ew", pady=(2, 4))
 
-        # Buttons
-        btn_frame = ttk.Frame(main_frame)
-        btn_frame.pack(fill=tk.X, pady=(15, 0))
-
-        ttk.Button(btn_frame, text="Create", command=self.save).pack(side=tk.RIGHT, padx=5)
-        ttk.Button(btn_frame, text="Cancel", command=self.destroy).pack(side=tk.RIGHT)
+        btn = tk.Frame(main, bg=p.BG)
+        btn.pack(fill=tk.X, pady=(14, 0))
+        ttk.Button(btn, text="Cancel", command=self.destroy).pack(side=tk.RIGHT, padx=(0, 8))
+        ttk.Button(btn, text="Create", style="Primary.TButton", command=self.save).pack(side=tk.RIGHT)
 
     def save(self):
         name = self.name_var.get().strip()
@@ -205,8 +226,7 @@ class AddModuleDialog(tk.Toplevel):
             category=self.category_var.get().strip(),
             is_custom=True,
             is_installed=True,
-            dependencies=deps
+            dependencies=deps,
         )
-
         self.on_save(new_module)
         self.destroy()

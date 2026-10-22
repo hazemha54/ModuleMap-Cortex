@@ -1,51 +1,36 @@
 """
-Odoo Models View with Modern Blue Theme
+Odoo Models View — catalog table of registered models.
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
+
 from app.repositories.database import DatabaseManager
+from app.ui import theme
 
 
 class ModelsView(ttk.Frame):
-    """View showing Odoo models catalog"""
+    """View showing Odoo models catalog."""
 
     def __init__(self, parent, db_manager: DatabaseManager):
-        super().__init__(parent, padding=25)
+        super().__init__(parent, padding=theme.SP_XL)
         self.db_manager = db_manager
         self.create_widgets()
         self.refresh()
 
     def create_widgets(self):
-        toolbar = ttk.Frame(self)
-        toolbar.pack(fill=tk.X, pady=(0, 20))
+        _, holder = theme.toolbar(self, "Odoo Models Catalog",
+                                  "Registered models and their hierarchy")
+        ttk.Button(holder, text="🔄 Refresh", command=self.refresh).pack(side=tk.RIGHT)
 
-        ttk.Label(toolbar, text="Odoo Models Catalog", style="Header.TLabel").pack(side=tk.LEFT)
-        ttk.Button(toolbar, text="🔄 Refresh Models", command=self.refresh).pack(side=tk.RIGHT)
-
-        table_frame = ttk.Frame(self)
-        table_frame.pack(fill=tk.BOTH, expand=True)
-
-        columns = ("id", "model_name", "display_name", "model_type", "parent_model")
-        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=15)
-
-        self.tree.heading("id", text="ID")
-        self.tree.heading("model_name", text="Model Technical Name")
-        self.tree.heading("display_name", text="Display Name")
-        self.tree.heading("model_type", text="Type")
-        self.tree.heading("parent_model", text="Parent Model")
-
-        self.tree.column("id", width=60, anchor=tk.CENTER)
-        self.tree.column("model_name", width=230, anchor=tk.W)
-        self.tree.column("display_name", width=260, anchor=tk.W)
-        self.tree.column("model_type", width=110, anchor=tk.CENTER)
-        self.tree.column("parent_model", width=180, anchor=tk.W)
-
-        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
-
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        columns = {
+            "id": ("ID", 60, tk.CENTER),
+            "model_name": ("Model Technical Name", 230, tk.W),
+            "display_name": ("Display Name", 260, tk.W),
+            "model_type": ("Type", 110, tk.CENTER),
+            "parent_model": ("Parent Model", 180, tk.W),
+        }
+        self.tree, _ = theme.data_table(self, columns, height=15)
 
     def refresh(self):
         for item in self.tree.get_children():
@@ -55,11 +40,11 @@ class ModelsView(ttk.Frame):
         try:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM models ORDER BY model_name")
-            rows = cursor.fetchall()
-            for row in rows:
+            for row in cursor.fetchall():
                 r = dict(row)
                 self.tree.insert("", tk.END, values=(
-                    r['id'], r['model_name'], r['display_name'] or "", r['model_type'] or "model", r['parent_model'] or ""
+                    r['id'], r['model_name'], r['display_name'] or "",
+                    r['model_type'] or "model", r['parent_model'] or "",
                 ))
         except Exception as e:
             print(f"Error loading models: {e}")

@@ -1,11 +1,14 @@
 """
-Main Window Shell with Modern Blue Theme & Sidebar Navigation & Lazy-Loaded Views
+Main Window Shell — premium enterprise theme with a polished sidebar and
+lazy-loaded views. All global styling lives in app.ui.theme.
 """
 
 import tkinter as tk
 from tkinter import ttk
+
 from app.repositories.database import DatabaseManager
 from app.services.config_manager import ConfigManager
+from app.ui import theme
 from app.ui.views.dashboard_view import DashboardView
 from app.ui.views.modules_view import ModulesView
 from app.ui.views.dependencies_view import DependenciesView
@@ -17,7 +20,7 @@ from app.ui.views.help_view import HelpView
 
 
 class MainWindow(tk.Tk):
-    """Main Application Window for ModuleMap-Cortex (Tkinter Modern Blue Theme)"""
+    """Main Application Window for ModuleMap-Cortex."""
 
     def __init__(self, db_manager: DatabaseManager, config_manager: ConfigManager):
         super().__init__()
@@ -29,137 +32,86 @@ class MainWindow(tk.Tk):
         self.geometry(f"{app_cfg.window_width}x{app_cfg.window_height}")
         self.minsize(1050, 720)
 
-        # Configure Modern Theme & Colors
-        self.bg_dark = "#111e2e"       # Sidebar background (Dark Navy)
-        self.bg_light = "#f4f6f9"      # Main background (Off-white / light gray)
-        self.accent_blue = "#0056b3"   # Primary blue accent
-        self.accent_hover = "#007bff"  # Hover blue
-        self.text_light = "#ffffff"    # Sidebar text
-        self.text_dark = "#212529"     # Content text
+        self.p = theme.Palette
+        self.f = theme.Font
 
-        self.configure(bg=self.bg_light)
-        self.setup_styles()
+        self.configure(bg=self.p.BG)
+        theme.apply_theme(self)
         self.create_layout()
 
-    def setup_styles(self):
-        style = ttk.Style()
-        style.theme_use("clam")
-
-        # Configure global fonts and colors
-        style.configure(".", background=self.bg_light, foreground=self.text_dark, font=("Segoe UI", 10))
-        style.configure("TFrame", background=self.bg_light)
-        style.configure("TLabel", background=self.bg_light, foreground=self.text_dark, font=("Segoe UI", 10))
-        style.configure("Header.TLabel", font=("Segoe UI", 18, "bold"), foreground="#1e3d59")
-        style.configure("SubHeader.TLabel", font=("Segoe UI", 13, "bold"), foreground="#1e3d59")
-
-        # Modern Button Style
-        style.configure("TButton",
-                        font=("Segoe UI", 10, "bold"),
-                        padding=8,
-                        relief="flat",
-                        background="#e2e8f0",
-                        foreground="#1e293b")
-        style.map("TButton",
-                  background=[("active", self.accent_blue), ("pressed", "#004085")],
-                  foreground=[("active", "#ffffff"), ("pressed", "#ffffff")])
-
-        # Primary Action Button Style
-        style.configure("Primary.TButton",
-                        font=("Segoe UI", 10, "bold"),
-                        padding=8,
-                        background=self.accent_blue,
-                        foreground="#ffffff")
-        style.map("Primary.TButton",
-                  background=[("active", self.accent_hover), ("pressed", "#004085")],
-                  foreground=[("active", "#ffffff"), ("pressed", "#ffffff")])
-
-        # Sidebar Button Style
-        style.configure("Sidebar.TButton",
-                        font=("Segoe UI", 11, "bold"),
-                        anchor="w",
-                        padding=12,
-                        background=self.bg_dark,
-                        foreground=self.text_light,
-                        borderwidth=0)
-        style.map("Sidebar.TButton",
-                  background=[("active", self.accent_blue), ("pressed", "#004085")],
-                  foreground=[("active", "#ffffff"), ("pressed", "#ffffff")])
-
-        # Treeview Styling
-        style.configure("Treeview",
-                        background="#ffffff",
-                        foreground="#212529",
-                        fieldbackground="#ffffff",
-                        rowheight=26,
-                        font=("Segoe UI", 10))
-        style.configure("Treeview.Heading",
-                        background="#1e3d59",
-                        foreground="#ffffff",
-                        font=("Segoe UI", 10, "bold"),
-                        relief="flat")
-        style.map("Treeview.Heading", background=[("active", self.accent_blue)])
-
-        # LabelFrame
-        style.configure("TLabelframe", background=self.bg_light, bordercolor="#cbd5e1", relief="solid")
-        style.configure("TLabelframe.Label", background=self.bg_light, foreground="#1e3d59", font=("Segoe UI", 11, "bold"))
-
     def create_layout(self):
+        p, f = self.p, self.f
         self.columnconfigure(1, weight=1)
         self.rowconfigure(0, weight=1)
 
-        # 1. Sidebar Navigation Frame (Dark Navy)
-        sidebar = tk.Frame(self, bg=self.bg_dark, width=240)
+        # ------------------------------------------------------------------
+        # 1. Sidebar (deep navy)
+        # ------------------------------------------------------------------
+        sidebar = tk.Frame(self, bg=p.SIDEBAR, width=240)
         sidebar.grid(row=0, column=0, sticky="nsew")
         sidebar.grid_propagate(False)
 
-        # App Logo / Title
-        logo_frame = tk.Frame(sidebar, bg=self.bg_dark, pady=25)
-        logo_frame.pack(fill=tk.X, padx=15)
+        # Brand block
+        brand = tk.Frame(sidebar, bg=p.SIDEBAR, pady=24)
+        brand.pack(fill=tk.X, padx=20)
 
-        title_lbl = tk.Label(logo_frame, text="MODULEMAP", bg=self.bg_dark, fg="#ffffff", font=("Segoe UI", 16, "bold"))
-        title_lbl.pack(anchor=tk.W)
-        subtitle_lbl = tk.Label(logo_frame, text="V 0.1 by Hazem Hadj Ahmed", bg=self.bg_dark, fg="#38bdf8", font=("Segoe UI", 9, "bold"))
-        subtitle_lbl.pack(anchor=tk.W, pady=(2, 0))
+        # Logomark — a small rounded accent square with an inner "M"
+        mark = tk.Frame(brand, bg=p.ACCENT, width=34, height=34,
+                         highlightbackground=p.ACCENT_DARK, highlightthickness=0)
+        mark.pack(anchor=tk.W, pady=(0, 10))
+        mark.pack_propagate(False)
+        tk.Label(mark, text="M", bg=p.ACCENT, fg="#ffffff", font=("Segoe UI", 15, "bold"))\
+            .pack(expand=True)
 
-        # Divider line
-        ttk.Separator(sidebar, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=15, pady=10)
+        tk.Label(brand, text="ModuleMap", bg=p.SIDEBAR, fg="#ffffff",
+                 font=f.BRAND).pack(anchor=tk.W)
+        tk.Label(brand, text="Cortex · Enterprise Suite", bg=p.SIDEBAR,
+                 fg=p.INFO, font=f.BRAND_SUB).pack(anchor=tk.W, pady=(2, 0))
 
-        # Navigation Buttons
+        # Hairline divider
+        tk.Frame(sidebar, bg=p.SIDEBAR_BORDER, height=1).pack(fill=tk.X, padx=20, pady=16)
+
+        # Section caption
+        tk.Label(sidebar, text="WORKSPACE", bg=p.SIDEBAR, fg=p.TEXT_FAINT,
+                 font=(f.FAMILY, 8, "bold")).pack(anchor=tk.W, padx=22, pady=(0, 6))
+
+        # Navigation
         nav_buttons = [
-            ("📊  Dashboard", "dashboard"),
-            ("📦  Modules", "modules"),
-            ("🔗  Dependencies", "dependencies"),
-            ("🏗️  Odoo Models", "models"),
-            ("🔍  Changes & Audit", "changes"),
-            ("🔎  Global Search", "search"),
-            ("⚙️  Settings", "settings"),
-            ("📖  Help & Docs", "help"),
+            ("📊", "Dashboard", "dashboard"),
+            ("📦", "Modules", "modules"),
+            ("🔗", "Dependencies", "dependencies"),
+            ("🏗️", "Odoo Models", "models"),
+            ("🔍", "Changes & Audit", "changes"),
+            ("🔎", "Global Search", "search"),
+            ("⚙️", "Settings", "settings"),
+            ("📖", "Help & Docs", "help"),
         ]
 
         self.views = {}
         self.buttons = {}
 
-        nav_container = tk.Frame(sidebar, bg=self.bg_dark)
-        nav_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        nav = tk.Frame(sidebar, bg=p.SIDEBAR)
+        nav.pack(fill=tk.BOTH, expand=True, padx=12)
 
-        for text, view_key in nav_buttons:
-            btn = ttk.Button(nav_container, text=text, style="Sidebar.TButton", command=lambda vk=view_key: self.switch_view(vk))
-            btn.pack(fill=tk.X, pady=3)
-            self.buttons[view_key] = btn
+        for icon, label, key in nav_buttons:
+            row = self._nav_button(nav, icon, label, key)
+            self.buttons[key] = row
 
-        # Footer in sidebar
-        footer_frame = tk.Frame(sidebar, bg=self.bg_dark, pady=15)
-        footer_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=15)
-        footer_lbl = tk.Label(footer_frame, text="V 0.1 — Hazem Hadj Ahmed", bg=self.bg_dark, fg="#94a3b8", font=("Segoe UI", 8), justify=tk.LEFT)
-        footer_lbl.pack(anchor=tk.W)
+        # Footer
+        footer = tk.Frame(sidebar, bg=p.SIDEBAR, pady=16)
+        footer.pack(side=tk.BOTTOM, fill=tk.X, padx=20)
+        tk.Frame(footer, bg=p.SIDEBAR_BORDER, height=1).pack(fill=tk.X, pady=(0, 12))
+        tk.Label(footer, text="v0.1  ·  Hazem Hadj Ahmed", bg=p.SIDEBAR,
+                 fg=p.TEXT_FAINT, font=f.CAPTION).pack(anchor=tk.W)
 
-        # 2. Content Container Frame
+        # ------------------------------------------------------------------
+        # 2. Content container
+        # ------------------------------------------------------------------
         self.content_frame = ttk.Frame(self)
         self.content_frame.grid(row=0, column=1, sticky="nsew")
         self.content_frame.rowconfigure(0, weight=1)
         self.content_frame.columnconfigure(0, weight=1)
 
-        # Lazy-loaded views map (instantiated on first click)
         self.view_classes = {
             "dashboard": DashboardView,
             "modules": ModulesView,
@@ -173,8 +125,65 @@ class MainWindow(tk.Tk):
 
         self.switch_view("dashboard")
 
+    def _nav_button(self, parent, icon: str, label: str, key: str) -> tk.Button:
+        """A hoverable nav row that shows a persistent selected state.
+
+        Uses a real tk.Button so the click is handled natively and reliably.
+        We still control the three visual states ourselves (idle / hover /
+        selected) via background colors and an accent indicator frame.
+        """
+        p = self.p
+        f = self.f
+
+        # Clickable button with the accent indicator packed inside its left.
+        row = tk.Button(
+            parent, text=f"{icon}   {label}",
+            font=f.NAV, anchor="w", relief="flat", bd=0,
+            bg=p.SIDEBAR, fg=p.TEXT_MUTED,
+            activebackground=p.SIDEBAR, activeforeground=p.TEXT_MUTED,
+            cursor="hand2", highlightthickness=0,
+            command=lambda: self.switch_view(key),
+        )
+        row.pack(fill=tk.X, pady=2, ipady=6, padx=0)
+
+        # Accent bar overlaid on the button's left edge.
+        accent = tk.Frame(row, bg=p.SIDEBAR, width=3)
+        accent.place(x=0, y=0, relheight=1.0)
+        row._accent = accent
+        row._key = key
+
+        def hover(_):
+            self._paint(row, selected=False, hover=True)
+
+        def leave(_):
+            self._paint(row, selected=(self._selected == key))
+
+        row.bind("<Enter>", hover)
+        row.bind("<Leave>", leave)
+
+        # Initial paint.
+        self._paint(row, selected=False)
+        return row
+
+    def _paint(self, row: tk.Button, selected: bool, hover: bool = False):
+        """Paint a nav row in its idle, hover, or selected state."""
+        p = self.p
+        if selected:
+            bg, fg, font = p.ACCENT, p.ACCENT_TEXT, self.f.NAV_BOLD
+            accent_bg = "#ffffff"
+        elif hover:
+            bg, fg, font = p.SIDEBAR_HOVER, p.ACCENT_HOVER, self.f.NAV
+            accent_bg = p.SIDEBAR_HOVER
+        else:
+            bg, fg, font = p.SIDEBAR, p.TEXT_MUTED, self.f.NAV
+            accent_bg = p.SIDEBAR
+
+        row.config(bg=bg, fg=fg, font=font,
+                   activebackground=bg, activeforeground=fg)
+        row._accent.config(bg=accent_bg)
+
     def switch_view(self, view_key: str):
-        # Lazy initialize view if not already created
+        # Lazy-instantiate the view on first visit.
         if view_key not in self.views:
             view_class = self.view_classes.get(view_key)
             if view_class:
@@ -192,9 +201,7 @@ class MainWindow(tk.Tk):
             if hasattr(view, "refresh"):
                 view.refresh()
 
-            # Highlight active button
-            for vk, btn in self.buttons.items():
-                if vk == view_key:
-                    btn.state(['pressed'])
-                else:
-                    btn.state(['!pressed'])
+        # Repaint every nav row so exactly one shows the selected state.
+        self._selected = view_key
+        for key, row in self.buttons.items():
+            self._paint(row, selected=(key == view_key))
