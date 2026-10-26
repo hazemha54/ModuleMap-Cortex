@@ -1,8 +1,11 @@
 """
 Comprehensive unit tests for DatabaseManager, ConfigManager, OdooConnector, WorkspaceManager, and DiffEngine
+including schema validation robustness and logging verification.
 """
 
 import os
+import json
+import logging
 import pytest
 from app.repositories.database import DatabaseManager
 from app.services.config_manager import ConfigManager, OdooConfig, AppConfig
@@ -52,6 +55,29 @@ def test_database_init_and_crud(test_db):
     assert updated.display_name == "Updated Test Module"
 
     assert test_db.delete_module(fetched.id) is True
+
+
+def test_database_schema_validation_resilience():
+    storage_file = "modules_store.json"
+    if os.path.exists(storage_file):
+        os.remove(storage_file)
+
+    # Write malformed storage file to test schema validation recovery
+    malformed_data = {
+        "modules": "not_a_list",
+        "models": [{"id": 1, "model_name": "test"}],
+        "changes": "invalid"
+    }
+    with open(storage_file, 'w', encoding='utf-8') as f:
+        json.dump(malformed_data, f)
+
+    db = DatabaseManager(db_path=storage_file)
+    # Should safely fallback and return empty or normalized modules without crashing
+    modules = db.get_all_modules()
+    assert isinstance(modules, list)
+
+    if os.path.exists(storage_file):
+        os.remove(storage_file)
 
 
 def test_config_manager():

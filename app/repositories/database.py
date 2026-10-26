@@ -1,19 +1,21 @@
 """
-JSON Local Storage Repository (Replacing SQLite)
+JSON Local Storage Repository with Schema Validation and Structured Logging
 """
 
 import json
 import os
+import logging
 from typing import List, Dict, Optional
 from dataclasses import asdict
 from app.domain.models import Module
 
+logger = logging.getLogger(__name__)
+
 
 class DatabaseManager:
-    """Manages local JSON file storage for modules, models, and changes"""
+    """Manages local JSON file storage for modules, models, and changes with validation"""
 
     def __init__(self, db_path: str = 'modules_store.json'):
-        # db_path parameter kept for configuration compatibility
         self.storage_file = "modules_store.json"
         self.init_storage()
 
@@ -59,88 +61,129 @@ class DatabaseManager:
             self._save_data(initial_data)
 
     def _load_data(self) -> Dict:
+        default_data = {"modules": [], "models": [], "changes": []}
         if not os.path.exists(self.storage_file):
-            return {"modules": [], "models": [], "changes": []}
+            return default_data
         try:
-            with open(self.storage_file, 'r') as f:
-                return json.load(f)
+            with open(self.storage_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            if not isinstance(data, dict):
+                logger.error("Storage root is not a dictionary. Resetting to default structure.")
+                return default_data
+
+            # Validate and normalize keys
+            validated = {
+                "modules": [],
+                "models": [],
+                "changes": []
+            }
+
+            modules = data.get("modules")
+            if isinstance(modules, list):
+                for m in modules:
+                    if isinstance(m, dict) and "id" in m and "name" in m:
+                        validated["modules"].append(m)
+                    else:
+                        logger.warning(f"Skipping malformed module entry: {m}")
+
+            models = data.get("models")
+            if isinstance(models, list):
+                for model in models:
+                    if isinstance(model, dict):
+                        validated["models"].append(model)
+
+            changes = data.get("changes")
+            if isinstance(changes, list):
+                for change in changes:
+                    if isinstance(change, dict):
+                        validated["changes"].append(change)
+
+            return validated
         except Exception as e:
-            print(f"Error loading storage: {e}")
-            return {"modules": [], "models": [], "changes": []}
+            logger.error(f"Error loading and validating storage: {e}", exc_info=True)
+            return default_data
 
     def _save_data(self, data: Dict):
         try:
-            with open(self.storage_file, 'w') as f:
+            with open(self.storage_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
-            print(f"Error saving storage: {e}")
+            logger.error(f"Error saving storage: {e}", exc_info=True)
 
     def get_all_modules(self, filter_type: Optional[str] = None, search_query: Optional[str] = None) -> List[Module]:
         data = self._load_data()
         modules = []
         for mod_dict in data.get("modules", []):
-            is_installed = mod_dict.get("is_installed", True)
-            is_custom = mod_dict.get("is_custom", False)
+            try:
+                mod_id = int(mod_dict.get("id", 0))
+                mod_name = str(mod_dict.get("name", ""))
+                is_installed = bool(mod_dict.get("is_installed", True))
+                is_custom = bool(mod_dict.get("is_custom", False))
 
-            if filter_type == "Installed" and not is_installed:
-                continue
-            if filter_type == "Custom" and not is_custom:
-                continue
-            if filter_type == "Core" and is_custom:
-                continue
-
-            if search_query:
-                q = search_query.lower()
-                matched = (
-                    q in mod_dict.get("name", "").lower() or
-                    q in mod_dict.get("display_name", "").lower() or
-                    q in mod_dict.get("description", "").lower() or
-                    q in mod_dict.get("author", "").lower()
-                )
-                if not matched:
+                if filter_type == "Installed" and not is_installed:
+                    continue
+                if filter_type == "Custom" and not is_custom:
+                    continue
+                if filter_type == "Core" and is_custom:
                     continue
 
-            modules.append(Module(
-                id=mod_dict["id"],
-                name=mod_dict["name"],
-                display_name=mod_dict.get("display_name", ""),
-                description=mod_dict.get("description", ""),
-                author=mod_dict.get("author", ""),
-                version=mod_dict.get("version", "1.0.0"),
-                category=mod_dict.get("category", "General"),
-                is_custom=is_custom,
-                is_installed=is_installed,
-                dependencies=mod_dict.get("dependencies", [])
-            ))
+                if search_query:
+                    q = search_query.lower()
+                    matched = (
+                        q in mod_name.lower() or
+                        q in str(mod_dict.get("display_name", "")).lower() or
+                        q in str(mod_dict.get("description", "")).lower() or
+                        q in str(mod_dict.get("author", "")).lower()
+                    )
+                    if not matched:
+                        continue
+
+                modules.append(Module(
+                    id=mod_id,
+                    name=mod_name,
+                    display_name=str(mod_dict.get("display_name", "")),
+                    description=str(mod_dict.get("description", "")),
+                    author=str(mod_dict.get("author", "")),
+                    version=str(mod_dict.get("version", "1.0.0")),
+                    category=str(mod_dict.get("category", "General")),
+                    is_custom=is_custom,
+                    is_installed=is_installed,
+                    dependencies=list(mod_dict.get("dependencies", []))
+                ))
+            except Exception as e:
+                logger.error(f"Error parsing module entry {mod_dict}: {e}")
         return modules
 
     def get_module(self, module_id: int) -> Optional[Module]:
         data = self._load_data()
         for mod_dict in data.get("modules", []):
-            if mod_dict["id"] == module_id:
-                return Module(
-                    id=mod_dict["id"],
-                    name=mod_dict["name"],
-                    display_name=mod_dict.get("display_name", ""),
-                    description=mod_dict.get("description", ""),
-                    author=mod_dict.get("author", ""),
-                    version=mod_dict.get("version", "1.0.0"),
-                    category=mod_dict.get("category", "General"),
-                    is_custom=mod_dict.get("is_custom", False),
-                    is_installed=mod_dict.get("is_installed", True),
-                    dependencies=mod_dict.get("dependencies", [])
-                )
+            try:
+                if int(mod_dict.get("id", -1)) == module_id:
+                    return Module(
+                        id=int(mod_dict["id"]),
+                        name=str(mod_dict.get("name", "")),
+                        display_name=str(mod_dict.get("display_name", "")),
+                        description=str(mod_dict.get("description", "")),
+                        author=str(mod_dict.get("author", "")),
+                        version=str(mod_dict.get("version", "1.0.0")),
+                        category=str(mod_dict.get("category", "General")),
+                        is_custom=bool(mod_dict.get("is_custom", False)),
+                        is_installed=bool(mod_dict.get("is_installed", True)),
+                        dependencies=list(mod_dict.get("dependencies", []))
+                    )
+            except Exception as e:
+                logger.error(f"Error parsing module for ID {module_id}: {e}")
         return None
 
     def add_module(self, module: Module) -> bool:
         data = self._load_data()
         modules = data.get("modules", [])
 
-        # Check unique name
-        if any(m["name"] == module.name for m in modules):
+        if any(m.get("name") == module.name for m in modules):
             return False
 
-        new_id = max([m["id"] for m in modules], default=0) + 1
+        new_id = max([int(m.get("id", 0)) for m in modules], default=0) + 1
         module.id = new_id
 
         modules.append({
@@ -164,7 +207,7 @@ class DatabaseManager:
         modules = data.get("modules", [])
         found = False
         for m in modules:
-            if m["id"] == module.id:
+            if int(m.get("id", -1)) == module.id:
                 m["display_name"] = module.display_name
                 m["description"] = module.description
                 m["author"] = module.author
@@ -185,7 +228,7 @@ class DatabaseManager:
         data = self._load_data()
         modules = data.get("modules", [])
         initial_len = len(modules)
-        modules = [m for m in modules if m["id"] != module_id]
+        modules = [m for m in modules if int(m.get("id", -1)) != module_id]
         if len(modules) < initial_len:
             data["modules"] = modules
             self._save_data(data)
@@ -208,7 +251,6 @@ class DatabaseManager:
         }
 
     def get_connection(self):
-        """Mock connection for views/models that query sqlite directly"""
         class MockConnection:
             def __init__(self, storage_data):
                 self.data = storage_data

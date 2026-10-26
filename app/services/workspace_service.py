@@ -1,11 +1,14 @@
 """
-Workspace Discovery Service for Scanning Local Odoo Source Directories
+Workspace Discovery Service for Scanning Local Odoo Source Directories with Structured Logging
 """
 
 import os
 import ast
+import logging
 from pathlib import Path
 from typing import List, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class WorkspaceManager:
@@ -57,7 +60,7 @@ class WorkspaceManager:
                     # Evaluate dictionary literal safely
                     return ast.literal_eval(expr.value)
         except Exception as e:
-            print(f"Error parsing manifest {manifest_path}: {e}")
+            logger.error(f"Error parsing manifest {manifest_path}: {e}", exc_info=True)
         return {}
 
     def get_file_content(self, file_path: str) -> str:
@@ -69,5 +72,5 @@ class WorkspaceManager:
             if p.exists() and p.is_file():
                 return p.read_text(encoding="utf-8", errors="ignore")
         except Exception as e:
-            print(f"Error reading file {file_path}: {e}")
+            logger.error(f"Error reading file {file_path}: {e}", exc_info=True)
         return ""

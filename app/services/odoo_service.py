@@ -1,10 +1,13 @@
 """
-Odoo Service Connector (Fixed XML-RPC / JSON-RPC Protocol & Timeouts)
+Odoo Service Connector (Fixed XML-RPC / JSON-RPC Protocol & Timeouts) with Structured Logging
 """
 
 import xmlrpc.client
 import socket
+import logging
 from typing import List, Dict, Tuple, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class OdooConnector:
@@ -24,7 +27,6 @@ class OdooConnector:
     def connect(self) -> Tuple[bool, str]:
         """Establish connection to Odoo using standard XML-RPC endpoints with timeout"""
         try:
-            # Set default socket timeout for xmlrpc calls
             socket.setdefaulttimeout(self.timeout)
 
             common_url = f'{self.url}/xmlrpc/2/common'
@@ -33,7 +35,6 @@ class OdooConnector:
             self.common = xmlrpc.client.ServerProxy(common_url, allow_none=True)
             self.models = xmlrpc.client.ServerProxy(models_url, allow_none=True)
 
-            # Authenticate via standard xmlrpc/2/common authenticate
             uid = self.common.authenticate(self.db, self.username, self.password, {})
 
             if uid:
@@ -44,6 +45,7 @@ class OdooConnector:
                 return False, "Authentication failed (invalid credentials or database)"
 
         except Exception as e:
+            logger.error(f"Connection error to Odoo at {self.url}: {e}", exc_info=True)
             return False, f"Connection error: {str(e)}"
 
     def get_installed_modules(self) -> List[Dict]:
@@ -77,7 +79,7 @@ class OdooConnector:
             return result
 
         except Exception as e:
-            print(f"Error fetching modules: {e}")
+            logger.error(f"Error fetching modules from Odoo: {e}", exc_info=True)
             return []
 
     def get_models(self) -> List[Dict]:
@@ -106,7 +108,7 @@ class OdooConnector:
             return result
 
         except Exception as e:
-            print(f"Error fetching models: {e}")
+            logger.error(f"Error fetching models from Odoo: {e}", exc_info=True)
             return []
 
     @staticmethod
